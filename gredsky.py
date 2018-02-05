@@ -65,7 +65,6 @@ class GtkClient (SkyChatClient):
         self._messages.load_html(self._msg_text, 'http://redsky.fr')
         self._sw.set_placement(Gtk.CornerType.BOTTOM_LEFT)
         if not self.window.is_active() and self._settings_notify.toggled:
-            print("test pas actif")
             subprocess.Popen(['notify-send',msg['pseudo'] + ' : '
                               + html.unescape(msg['message'])])
 
