@@ -2,15 +2,20 @@
 
 from redskyAPI import SkyChatClient
 from time import sleep
+from bs4 import BeautifulSoup
+from urllib.request import urlopen
 import subprocess
 import sys
 import threading
 import gi
 import html
+import tempfile
+import os
+
+
 gi.require_version('Gtk', '3.0')
-gi.require_version('WebKit2', '4.0')
-from gi.repository import WebKit2
-from gi.repository import Gtk, GLib, GObject
+
+from gi.repository import Gtk, GLib, GObject, GdkPixbuf
 
 class GtkClient (SkyChatClient):
     def __init__ (self, nickname, pwd, room):
@@ -20,7 +25,7 @@ class GtkClient (SkyChatClient):
         self.window.connect("delete-event", Gtk.main_quit)
         
         self._box = Gtk.Box(homogeneous=False,
-                            expand=True,
+                            vexpand=True,
                             hexpand=True,
                            orientation=Gtk.Orientation.VERTICAL,
                            spacing=6)
@@ -36,10 +41,9 @@ class GtkClient (SkyChatClient):
         self._box_top.add(self._settings_notify)
         self._box.add(self._box_top)
         self._send_btn = Gtk.Button(label="Envoyer")
-        self._sw = Gtk.ScrolledWindow(hexpand=False,
-                                      min_content_height=400,
+        self._sw = Gtk.ScrolledWindow(min_content_height=400,
                                       min_content_width=520)
-        self._messages = WebKit2.WebView(editable=False)
+        self._messages = Gtk.TextView(editable=False)#, wrap_mode=Gtk.WrapMode.WORD)
         self._input = Gtk.Entry()
         self._box_bottom.add(self._input)
         self._box_bottom.add(self._send_btn)
@@ -54,17 +58,61 @@ class GtkClient (SkyChatClient):
         self._msg_text = ""
         self._notify = True
         self.window.show_all()
+        
 
         
     def on_login (self):
         sleep(2)
 
     def on_message (self, msg):
-        self._msg_text +=  "<b>" + msg['pseudo'] + "</b> : "
-        self._msg_text += msg['message'] + "<br>"
-        self._messages.load_html(self._msg_text, 'http://redsky.fr')
-        self._sw.set_placement(Gtk.CornerType.BOTTOM_LEFT)
-        if not self.window.is_active() and self._settings_notify.toggled:
+        msg_text = msg['pseudo'] + " : "
+        #for i in range(0,20):
+        soup = BeautifulSoup(html.unescape(msg['message']))
+        nb_images = 0
+        images = []
+        nb_images = 0
+        for img in soup.find_all('img'):
+            img.replaceWith("#IMG#")
+            temp_fic = open(os.path.dirname(os.path.realpath(__file__)) +
+                            "/img/" +
+                            img['src'].rsplit('/',1)[-1], "wb") #tempfile.NamedTemporaryFile()
+            try:
+                if img['src'][:4] != "http":
+                    print('https:'+img['src'])
+                    img_temp = urlopen("https:"+img['src'])
+                else:
+                    print(img['src'])
+                    img_temp = urlopen(img['src'])
+            except:
+                continue
+            temp_fic.write(img_temp.read())
+            images.append(temp_fic.name)
+            temp_fic.close()
+            nb_images += 1
+                        
+        texte_separe = soup.get_text().split("#IMG#")
+        self._buffer = self._messages.get_buffer()
+        self._buffer.insert(self._buffer.get_end_iter(), msg_text,-1)
+        i = 0
+        for s in texte_separe:
+            self._buffer.insert(self._buffer.get_end_iter(), s, -1)
+            if (nb_images <= 0):
+                continue
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(images[i])
+            print(images[i])
+            self._buffer.insert_pixbuf(self._buffer.get_end_iter(), pixbuf)
+            self._buffer.insert(self._buffer.get_end_iter(), " \n", -1)
+            i += 1
+            
+        self._buffer.insert(self._buffer.get_end_iter(), "\n", -1)
+        while Gtk.events_pending():
+            Gtk.main_iteration()
+        pos = self._sw.get_vadjustment()
+        pos.set_value(50)
+        self._sw.set_vadjustment(pos)
+        #fin = self._buffer.create_mark("fin", self._buffer.get_end_iter())
+        #self._messages.scroll_to_mark(fin, 0, True, 0.5, 0.5)
+        if not self.window.is_active() and self._settings_notify.get_active():
             subprocess.Popen(['notify-send',msg['pseudo'] + ' : '
                               + html.unescape(msg['message'])])
 
