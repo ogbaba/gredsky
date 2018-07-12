@@ -92,6 +92,7 @@ class GtkClient (SkyChatClient):
                         
         texte_separe = soup.get_text().split("#IMG#")
         self._buffer = self._messages.get_buffer()
+        self._buffer.insert(self._buffer.get_end_iter(), "\n", -1)
         self._buffer.insert(self._buffer.get_end_iter(), msg_text,-1)
         i = 0
         for s in texte_separe:
@@ -101,10 +102,10 @@ class GtkClient (SkyChatClient):
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(images[i])
             print(images[i])
             self._buffer.insert_pixbuf(self._buffer.get_end_iter(), pixbuf)
-            self._buffer.insert(self._buffer.get_end_iter(), " \n", -1)
+            self._buffer.insert(self._buffer.get_end_iter(), " ", -1)
             i += 1
             
-        self._buffer.insert(self._buffer.get_end_iter(), "\n", -1)
+        #self._buffer.insert(self._buffer.get_end_iter(), "\n", -1)
         while Gtk.events_pending():
             Gtk.main_iteration()
         pos = self._sw.get_vadjustment()
