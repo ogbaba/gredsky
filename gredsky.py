@@ -65,8 +65,13 @@ class GtkClient (SkyChatClient):
         sleep(2)
 
     def on_message (self, msg):
+        self._buffer = self._messages.get_buffer()
         msg_text = msg['pseudo'] + " : "
-        #for i in range(0,20):
+        if msg['pseudo'] == 'RedSkyBot':
+            msg_text = "\n" + msg_text
+            msg_text += html.unescape(msg['message'])
+            self._buffer.insert(self._buffer.get_end_iter(), msg_text, -1)
+            return
         soup = BeautifulSoup(html.unescape(msg['message']))
         nb_images = 0
         images = []
@@ -91,7 +96,6 @@ class GtkClient (SkyChatClient):
             nb_images += 1
                         
         texte_separe = soup.get_text().split("#IMG#")
-        self._buffer = self._messages.get_buffer()
         self._buffer.insert(self._buffer.get_end_iter(), "\n", -1)
         self._buffer.insert(self._buffer.get_end_iter(), msg_text,-1)
         i = 0
