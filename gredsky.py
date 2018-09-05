@@ -67,7 +67,7 @@ class GtkClient (SkyChatClient):
     def on_message (self, msg):
         #while Gtk.events_pending():
         #    Gtk.main_iteration()
-        msg_text = msg['pseudo'] + " : "
+        msg_text = "\n" + msg['pseudo'] + " : "
         end_iter = self._buffer.get_end_iter()
         if msg['pseudo'] == 'RedSkyBot':
             msg_text = "\n" + msg_text
@@ -87,10 +87,10 @@ class GtkClient (SkyChatClient):
                             img['src'].rsplit('/',1)[-1], "wb") #tempfile.NamedTemporaryFile()
             try:
                 if img['src'][:4] != "http":
-                    print('https:'+img['src'])
+                    #print('https:'+img['src'])
                     img_temp = urlopen("https:"+img['src'])
                 else:
-                    print(img['src'])
+                    #print(img['src'])
                     img_temp = urlopen(img['src'])
             except:
                 continue
@@ -100,7 +100,7 @@ class GtkClient (SkyChatClient):
             nb_images += 1
                         
         texte_separe = soup.get_text().split("#IMG#")
-        GLib.idle_add(self._buffer.insert, end_iter, "\n", -1)
+        #GLib.idle_add(self._buffer.insert, end_iter, "\n", -1)
         GLib.idle_add(self._buffer.insert, end_iter, msg_text,-1)
         i = 0
         for s in texte_separe:
@@ -113,7 +113,7 @@ class GtkClient (SkyChatClient):
             GLib.idle_add(self._buffer.insert, end_iter, " ", -1)
             i += 1
             
-        GLib.idle_add(self._buffer.insert, end_iter, "\n ", -1)
+        #GLib.idle_add(self._buffer.insert, end_iter, "\n", -1)
         #c cacac ça
         #pos = self._sw.get_vadjustment()
         #pos.set_value(100)
