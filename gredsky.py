@@ -15,7 +15,7 @@ import os
 
 gi.require_version('Gtk', '3.0')
 
-from gi.repository import Gtk, GLib, GObject, GdkPixbuf
+from gi.repository import Gtk, GLib, GObject, GdkPixbuf, GLib
 
 class GtkClient (SkyChatClient):
     def __init__ (self, nickname, pwd, room):
@@ -43,7 +43,7 @@ class GtkClient (SkyChatClient):
         self._send_btn = Gtk.Button(label="Envoyer")
         self._sw = Gtk.ScrolledWindow(min_content_height=400,
                                       min_content_width=520)
-        self._messages = Gtk.TextView(editable=False)#, wrap_mode=Gtk.WrapMode.WORD)
+        self._messages = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD)
         self._input = Gtk.Entry()
         self._box_bottom.add(self._input)
         self._box_bottom.add(self._send_btn)
@@ -58,26 +58,30 @@ class GtkClient (SkyChatClient):
         self._msg_text = ""
         self._notify = True
         self.window.show_all()
-        
+        self._buffer = self._messages.get_buffer()
 
         
     def on_login (self):
         sleep(2)
 
     def on_message (self, msg):
-        self._buffer = self._messages.get_buffer()
+        #while Gtk.events_pending():
+        #    Gtk.main_iteration()
         msg_text = msg['pseudo'] + " : "
+        end_iter = self._buffer.get_end_iter()
         if msg['pseudo'] == 'RedSkyBot':
             msg_text = "\n" + msg_text
             msg_text += html.unescape(msg['message'])
-            self._buffer.insert(self._buffer.get_end_iter(), msg_text, -1)
+            GLib.idle_add(self._buffer.insert, end_iter, msg_text, -1)
             return
-        soup = BeautifulSoup(html.unescape(msg['message']))
+        soup = BeautifulSoup(html.unescape(msg['message']), "lxml")
         nb_images = 0
         images = []
         nb_images = 0
         for img in soup.find_all('img'):
             img.replaceWith("#IMG#")
+            if os.path.isfile(img['src'].rsplit('/',1)[-1]):
+                continue
             temp_fic = open(os.path.dirname(os.path.realpath(__file__)) +
                             "/img/" +
                             img['src'].rsplit('/',1)[-1], "wb") #tempfile.NamedTemporaryFile()
@@ -96,35 +100,39 @@ class GtkClient (SkyChatClient):
             nb_images += 1
                         
         texte_separe = soup.get_text().split("#IMG#")
-        self._buffer.insert(self._buffer.get_end_iter(), "\n", -1)
-        self._buffer.insert(self._buffer.get_end_iter(), msg_text,-1)
+        GLib.idle_add(self._buffer.insert, end_iter, "\n", -1)
+        GLib.idle_add(self._buffer.insert, end_iter, msg_text,-1)
         i = 0
         for s in texte_separe:
-            self._buffer.insert(self._buffer.get_end_iter(), s, -1)
+            GLib.idle_add(self._buffer.insert, end_iter, s, -1)
             if (nb_images <= 0):
                 continue
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(images[i])
-            print(images[i])
-            self._buffer.insert_pixbuf(self._buffer.get_end_iter(), pixbuf)
-            self._buffer.insert(self._buffer.get_end_iter(), " ", -1)
+            #print(images[i])
+            GLib.idle_add(self._buffer.insert_pixbuf, end_iter, pixbuf)
+            GLib.idle_add(self._buffer.insert, end_iter, " ", -1)
             i += 1
             
-        #self._buffer.insert(self._buffer.get_end_iter(), "\n", -1)
-        while Gtk.events_pending():
-            Gtk.main_iteration()
-        pos = self._sw.get_vadjustment()
-        pos.set_value(50)
-        self._sw.set_vadjustment(pos)
-        #fin = self._buffer.create_mark("fin", self._buffer.get_end_iter())
-        #self._messages.scroll_to_mark(fin, 0, True, 0.5, 0.5)
+        GLib.idle_add(self._buffer.insert, end_iter, "\n ", -1)
+        #c cacac ça
+        #pos = self._sw.get_vadjustment()
+        #pos.set_value(100)
+        #GLib.idle_add(self._sw.set_vadjustment, pos)
+        #self.calmos()
+        GLib.idle_add(self._messages.scroll_to_iter, end_iter, 0, False, 0.5, 0.5)
         if not self.window.is_active() and self._settings_notify.get_active():
             subprocess.Popen(['notify-send',msg['pseudo'] + ' : '
                               + html.unescape(msg['message'])])
 
     def on_send_message_clicked(self, widget, entry):
         self.msgsend(entry.get_text())
-        entry.set_text("")
+        GLib.idle_add(entry.set_text, "")
     
+    def calmos(self):
+        while Gtk.events_pending():
+            Gtk.main_iteration()
+
+
 
 if (len(sys.argv) != 4):
     print("Utilisation : ./" + sys.argv[0] + " pseudo mdp salon \n")
