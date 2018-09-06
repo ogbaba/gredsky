@@ -105,14 +105,13 @@ class GtkClient (SkyChatClient):
         i = 0
         for s in texte_separe:
             GLib.idle_add(self._buffer.insert, end_iter, s, -1)
-            if (nb_images <= 0):
-                continue
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(images[i])
-            #print(images[i])
-            GLib.idle_add(self._buffer.insert_pixbuf, end_iter, pixbuf)
-            GLib.idle_add(self._buffer.insert, end_iter, " ", -1)
-            i += 1
-            
+            #print(s)
+            if (nb_images > 0):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(images[i])
+                GLib.idle_add(self._buffer.insert_pixbuf, end_iter, pixbuf)
+                i += 1
+                nb_images = nb_images - 1
+        #print("test")
         #GLib.idle_add(self._buffer.insert, end_iter, "\n", -1)
         #c cacac ça
         #pos = self._sw.get_vadjustment()
