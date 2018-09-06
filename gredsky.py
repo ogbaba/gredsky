@@ -12,10 +12,10 @@ import html
 import tempfile
 import os
 
-
 gi.require_version('Gtk', '3.0')
 
 from gi.repository import Gtk, GLib, GObject, GdkPixbuf, GLib
+
 
 class GtkClient (SkyChatClient):
     def __init__ (self, nickname, pwd, room):
@@ -37,22 +37,34 @@ class GtkClient (SkyChatClient):
                                    hexpand=False,
                                    vexpand=True,
                                    spacing=4)
+        self._box_middle = Gtk.Box(homogeneous=False,
+                                    hexpand=False,
+                                    vexpand=False,
+                                    orientation=Gtk.Orientation.HORIZONTAL,
+                                    spacing=4)
         self._settings_notify = Gtk.CheckButton(label="Notifications")
         self._box_top.add(self._settings_notify)
         self._box.add(self._box_top)
         self._send_btn = Gtk.Button(label="Envoyer")
-        self._sw = Gtk.ScrolledWindow(min_content_height=400,
+        self._sw = Gtk.ScrolledWindow(min_content_height=460,
                                       min_content_width=520)
+        self._sw_users = Gtk.ScrolledWindow(min_content_height=460,
+                                            min_content_width=220)
+          
         self._messages = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD)
+        self._users_view = Gtk.TextView(editable=False)
         self._input = Gtk.Entry()
         self._box_bottom.add(self._input)
         self._box_bottom.add(self._send_btn)
+        self._box_middle.add(self._sw)
+        self._box_middle.add(self._sw_users)
         self._send_btn.connect("clicked", self.on_send_message_clicked,
                                self._input)
         self._input.connect("activate", self.on_send_message_clicked,
                             self._input)
         self._sw.add(self._messages)
-        self._box.add(self._sw)
+        self._sw_users.add(self._users_view)
+        self._box.add(self._box_middle)
         self._box.add(self._box_bottom)        
         self.window.add(self._box)
         self._msg_text = ""
@@ -108,17 +120,12 @@ class GtkClient (SkyChatClient):
             #print(s)
             if (nb_images > 0):
                 pixbuf = GdkPixbuf.Pixbuf.new_from_file(images[i])
-                GLib.idle_add(self._buffer.insert_pixbuf, end_iter, pixbuf)
+                GLib.idle_add(self._buffer.insert_pixbuf, 
+                        end_iter, pixbuf)
                 i += 1
                 nb_images = nb_images - 1
-        #print("test")
-        #GLib.idle_add(self._buffer.insert, end_iter, "\n", -1)
-        #c cacac ça
-        #pos = self._sw.get_vadjustment()
-        #pos.set_value(100)
-        #GLib.idle_add(self._sw.set_vadjustment, pos)
-        #self.calmos()
-        GLib.idle_add(self._messages.scroll_to_iter, end_iter, 0, False, 0.5, 0.5)
+        GLib.idle_add(self._messages.scroll_to_iter, 
+                end_iter, 0, False, 0.5, 0.5)
         if not self.window.is_active() and self._settings_notify.get_active():
             subprocess.Popen(['notify-send',msg['pseudo'] + ' : '
                               + html.unescape(msg['message'])])
@@ -131,7 +138,12 @@ class GtkClient (SkyChatClient):
         while Gtk.events_pending():
             Gtk.main_iteration()
 
-
+    def on_connected_list(self, msg):
+        buf_users = self._users_view.get_buffer()
+        users = ""
+        for p in msg["list"]:
+            users += p["pseudo"] + "\n"
+        GLib.idle_add(buf_users.set_text, users)
 
 if (len(sys.argv) != 4):
     print("Utilisation : ./" + sys.argv[0] + " pseudo mdp salon \n")
