@@ -82,7 +82,7 @@ class GtkClient (SkyChatClient):
         msg_text = "\n" + msg['pseudo'] + " : "
         end_iter = self._buffer.get_end_iter()
         if msg['pseudo'] == 'RedSkyBot':
-            msg_text = "\n" + msg_text
+            msg_text = msg_text
             msg_text += html.unescape(msg['message'])
             GLib.idle_add(self._buffer.insert, end_iter, msg_text, -1)
             return
@@ -139,10 +139,19 @@ class GtkClient (SkyChatClient):
             Gtk.main_iteration()
 
     def on_connected_list(self, msg):
+        #print(msg)
         buf_users = self._users_view.get_buffer()
         users = ""
         for p in msg["list"]:
-            users += p["pseudo"] + "\n"
+            temps = int(p["last_activity"]) 
+            temps_str = "LONGTEMPS"
+            if temps < 60:
+                temps_str = "<1m"
+            elif temps < 600:
+                temps_str = str(int(temps/60)) + "m"
+            else:
+                temps_str = ">10m"
+            users += p["pseudo"] + " (" + temps_str +")\n"
         GLib.idle_add(buf_users.set_text, users)
 
 if (len(sys.argv) != 4):
