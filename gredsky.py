@@ -46,9 +46,9 @@ class GtkClient (SkyChatClient):
         self._box_top.add(self._settings_notify)
         self._box.add(self._box_top)
         self._send_btn = Gtk.Button(label="Envoyer")
-        self._sw = Gtk.ScrolledWindow(min_content_height=460,
-                                      min_content_width=520)
-        self._sw_users = Gtk.ScrolledWindow(min_content_height=460,
+        self._sw = Gtk.ScrolledWindow(min_content_height=480,
+                                      min_content_width=540)
+        self._sw_users = Gtk.ScrolledWindow(min_content_height=480,
                                             min_content_width=220)
           
         self._messages = Gtk.TextView(editable=False, wrap_mode=Gtk.WrapMode.WORD)
@@ -56,8 +56,8 @@ class GtkClient (SkyChatClient):
         self._input = Gtk.Entry()
         self._box_bottom.add(self._input)
         self._box_bottom.add(self._send_btn)
-        self._box_middle.add(self._sw)
-        self._box_middle.add(self._sw_users)
+        self._box_middle.pack_start(self._sw, True, True, 8)
+        self._box_middle.pack_start(self._sw_users, True, True, 8)
         self._send_btn.connect("clicked", self.on_send_message_clicked,
                                self._input)
         self._input.connect("activate", self.on_send_message_clicked,
