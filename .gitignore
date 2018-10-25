@@ -1,7 +1,10 @@
 # Temp
 *~
 .*~
-
+# img caca
+img/*
+# config
+config.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
