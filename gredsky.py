@@ -154,10 +154,14 @@ class GtkClient (SkyChatClient):
             users += p["pseudo"] + " (" + temps_str +")\n"
         GLib.idle_add(buf_users.set_text, users)
 
-if (len(sys.argv) != 4):
-    print("Utilisation : ./" + sys.argv[0] + " pseudo mdp salon \n")
-    exit()
-c = GtkClient(sys.argv[1],sys.argv[2], int(sys.argv[3]))
+        
+config_path = os.path.join(os.path.dirname(__file__), 'config.txt')
+with open(config_path) as f:
+    infos_connexion =  f.readline().strip().split(' ')
+    mdp = infos_connexion[1]
+    pseudo = infos_connexion[0]
+
+c = GtkClient(pseudo,mdp,0)
 GObject.threads_init()
 thread = threading.Thread(target=c.run)
 thread.daemon = True
