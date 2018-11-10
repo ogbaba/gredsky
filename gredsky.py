@@ -11,6 +11,10 @@ import gi
 import html
 import tempfile
 import os
+import requests
+import json
+import math
+import random
 
 gi.require_version('Gtk', '3.0')
 
@@ -81,19 +85,28 @@ class GtkClient (SkyChatClient):
         #    Gtk.main_iteration()
         msg_text = "\n" + msg['pseudo'] + " : "
         end_iter = self._buffer.get_end_iter()
+
+        #### CAS PARTICULIERS
+        
+        ### le bot qui fout la merde
         if msg['pseudo'] == 'RedSkyBot':
             msg_text = msg_text
             msg_text += html.unescape(msg['message'])
             GLib.idle_add(self._buffer.insert, end_iter, msg_text, -1)
             return
+        ### les stickers
+        #print(msg['message'])
+        if msg['message'][:2] == ' @':
+            msg['message'] = "<img src=\"" + recherche_risibank(msg_text[1:]) + "\">"
+
         soup = BeautifulSoup(html.unescape(msg['message']), "lxml")
         nb_images = 0
         images = []
         nb_images = 0
         for img in soup.find_all('img'):
             img.replaceWith("#IMG#")
-            if os.path.isfile(img['src'].rsplit('/',1)[-1]):
-                continue
+            #if os.path.isfile(img['src'].rsplit('/',1)[-1]):
+            #    continue
             temp_fic = open(os.path.dirname(os.path.realpath(__file__)) +
                             "/img/" +
                             img['src'].rsplit('/',1)[-1], "wb") #tempfile.NamedTemporaryFile()
@@ -119,7 +132,7 @@ class GtkClient (SkyChatClient):
             GLib.idle_add(self._buffer.insert, end_iter, s, -1)
             #print(s)
             if (nb_images > 0):
-                pixbuf = GdkPixbuf.Pixbuf.new_from_file(images[i])
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(images[i], width=136, height=102, preserve_aspect_ratio=True)
                 GLib.idle_add(self._buffer.insert_pixbuf, 
                         end_iter, pixbuf)
                 i += 1
@@ -131,13 +144,18 @@ class GtkClient (SkyChatClient):
                               + html.unescape(msg['message'])])
 
     def on_send_message_clicked(self, widget, entry):
-        self.msgsend(entry.get_text())
+        # on gère le risibanquisme
+        msg = entry.get_text()
+        if msg[0] == '@':
+            self.msgsend(recherche_risibank(msg[1:]))
+        else:
+            self.msgsend(msg)
         GLib.idle_add(entry.set_text, "")
     
     def calmos(self):
         while Gtk.events_pending():
             Gtk.main_iteration()
-
+            
     def on_connected_list(self, msg):
         #print(msg)
         buf_users = self._users_view.get_buffer()
@@ -154,7 +172,13 @@ class GtkClient (SkyChatClient):
             users += p["pseudo"] + " (" + temps_str +")\n"
         GLib.idle_add(buf_users.set_text, users)
 
-        
+
+def recherche_risibank (recherche):
+    r = requests.post('https://api.risibank.fr/api/v0/search', data={'search': recherche})
+    j = json.loads(r.text)
+    id = random.choice(j['stickers'])['id']
+    return 'https://api.risibank.fr/cache/stickers/d' + str(math.floor(id / 100)) + "/" + str(id) + "-full.png"
+
 config_path = os.path.join(os.path.dirname(__file__), 'config.txt')
 with open(config_path) as f:
     infos_connexion =  f.readline().strip().split(' ')
