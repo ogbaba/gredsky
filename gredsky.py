@@ -95,12 +95,11 @@ class GtkClient (SkyChatClient):
             GLib.idle_add(self._buffer.insert, end_iter, msg_text, -1)
             return
         ### les stickers
-        #print(msg['message'])
-        if msg['message'][:2] == ' @':
-            msg['message'] = "<img src=\"" + recherche_risibank(msg_text[1:]) + "\">"
+        print(msg['message'])
+        #if msg['message'].startswith(" https://api.risibank.fr"):
+        #    msg['message'] = "<img src=\"" + msg['message'][1:] + "\">"
 
         soup = BeautifulSoup(html.unescape(msg['message']), "lxml")
-        nb_images = 0
         images = []
         nb_images = 0
         for img in soup.find_all('img'):
@@ -111,13 +110,18 @@ class GtkClient (SkyChatClient):
                             "/img/" +
                             img['src'].rsplit('/',1)[-1], "wb") #tempfile.NamedTemporaryFile()
             try:
-                if img['src'][:4] != "http":
-                    #print('https:'+img['src'])
+                print(img['src'])
+                if img['src'].startswith("//api.risibank.fr"):
+                    print("stick")
                     img_temp = urlopen("https:"+img['src'])
                 else:
-                    #print(img['src'])
-                    img_temp = urlopen(img['src'])
-            except:
+                    img_temp = urlopen("https:"+img['src'])
+
+#                else if img['src'].startswith("//api.risibank.fr"):
+#                    #print(img['src'])
+#                    img_temp = urlopen(img['src'])
+            except IOError as e:
+                print("erreur : " +str(e))
                 continue
             temp_fic.write(img_temp.read())
             images.append(temp_fic.name)
@@ -146,7 +150,7 @@ class GtkClient (SkyChatClient):
     def on_send_message_clicked(self, widget, entry):
         # on gère le risibanquisme
         msg = entry.get_text()
-        if msg[0] == '@':
+        if msg[0] == '#':
             self.msgsend(recherche_risibank(msg[1:]))
         else:
             self.msgsend(msg)
@@ -177,6 +181,7 @@ def recherche_risibank (recherche):
     r = requests.post('https://api.risibank.fr/api/v0/search', data={'search': recherche})
     j = json.loads(r.text)
     id = random.choice(j['stickers'])['id']
+    #print('https://api.risibank.fr/cache/stickers/d' + str(math.floor(id / 100)) + "/" + str(id) + "-full.png")
     return 'https://api.risibank.fr/cache/stickers/d' + str(math.floor(id / 100)) + "/" + str(id) + "-full.png"
 
 config_path = os.path.join(os.path.dirname(__file__), 'config.txt')
